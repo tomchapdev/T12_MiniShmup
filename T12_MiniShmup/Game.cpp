@@ -68,12 +68,17 @@ void Bubble(vector<Tree>& sprites)
 }
 
 
-void Tree::Update(RenderWindow& window, float dT)
+void Background::Update(RenderWindow& window, float elapsed)
 {
 	Vector2f pos = spr.getPosition();
-	pos.x -= dT * GC::TREE_SPEED * z;
+	pos.x -= elapsed * GC::BG_MAX_SPEED * z;
 	if (pos.x < -spr.getTextureRect().width)
-		pos.x = (float)(window.getSize().x + spr.getTextureRect().width);
+	{
+		if ((*pTex).isRepeated())
+			pos.x += spr.getTextureRect().width;
+		else
+			pos.x = (float)(window.getSize().x);
+	}
 	spr.setPosition(pos);
 }
 
@@ -173,7 +178,7 @@ void Object::MoveBullet(const sf::Vector2u& screenSz, float elapsed)
 	spr.setPosition(x, pos.y);
 }
 
-void Object::Render(RenderWindow& window, float elapsed)
+void Object::Render(RenderWindow& window)
 {
 	if (active)
 		window.draw(spr);
@@ -291,6 +296,17 @@ bool LoadTexture(const string& file, Texture& tex)
 	return false;
 }
 
+bool LoadTextureImg(const Image& img, Texture& tex, const IntRect& rect, const bool& repeat)
+{
+	if (tex.loadFromImage(img, rect))
+	{
+		tex.setSmooth(true);
+		tex.setRepeated(repeat);
+		return true;
+	}
+	assert(false);
+	return false;
+}
 
 void DrawCircle(RenderWindow& window, const Vector2f& pos, float radius, Color col)
 {
@@ -426,6 +442,40 @@ bool SpawnRock(RenderWindow& window, vector<Object>& objects, float extraClearan
 	return found;
 }
 
+void GenerateBgTextures(const Image& img, Texture& tex, const char& type)
+{
+	switch (type)
+	{
+	case 'b': //non-random background
+		if (!tex.create(GC::SCREEN_RES.x, GC::SCREEN_RES.y))
+			assert(false);
+		LoadTextureImg(img, tex, GC::BG_SPR[1], !GC::REPEAT);
+		LoadTextureImg(img, tex, GC::BG_SPR[0], GC::REPEAT);
+		break;
+	case 'm': //random mountains
+
+	case 'c': //random clouds
+
+	};
+}
+
+Background GenerateBg(Background& bg);
+{
+	switch (bg.type)
+	{
+	case 'b': //non-random background
+		if (!tex.create(GC::SCREEN_RES.x, GC::SCREEN_RES.y))
+			assert(false);
+		LoadTextureImg(img, tex, GC::BG_SPR[1], !GC::REPEAT);
+		LoadTextureImg(img, tex, GC::BG_SPR[0], GC::REPEAT);
+		break;
+	case 'm': //random mountains
+
+	case 'c': //random clouds
+
+	};
+}
+
 void Game::Init(sf::RenderWindow& window)
 {
 	LoadTexture("data/ship.png", texShip);
@@ -448,23 +498,11 @@ void Game::Init(sf::RenderWindow& window)
 	spawnDelay = 0.01f;
 	rockShipClearance = objects[0].spr.getGlobalBounds().width * 2.f;
 
-	Seed();
+	//Seed();
 
-	if (!texBgnd.loadFromFile("data/bg_parallaxFar.png"))
-		assert(false);
-	texBgnd.setRepeated(true);
-	sprBgnd.setTexture(texBgnd);
+	bgSpriteSheet.loadFromFile("data\\bgSpriteSheet.png");
 
-	if (!texTrees.loadFromFile("data/trees.png"))
-		assert(false);
-	texTrees.setSmooth(true);
-
-	if (!texSky.loadFromFile("data/backgroundlayers/stars.png"))
-		assert(false);
-	if (!texEarth.loadFromFile("data/backgroundlayers/earth.png"))
-		assert(false);
-
-	trees.insert(trees.begin(), GC::NUM_TREES, Tree());
+	/*backgrounds.insert(trees.begin(), GC::NUM_TREES, Tree());
 	for (size_t i = 0; i < trees.size(); ++i)
 	{
 		Tree& o = trees[i];
@@ -477,13 +515,13 @@ void Game::Init(sf::RenderWindow& window)
 		o.spr.setPosition(GetRandRange(0.f, (float)window.getSize().x + o.spr.getTextureRect().width),
 			(float)window.getSize().y * 0.9f - (150 * (1.f - o.z)));
 
-	}
+	}*/
 	/*
 	std::sort(sprites.begin(), sprites.end(), [](GameObj& o1, GameObj& o2){
 		return o1.z < o2.z;
 	});
 	*/
-	Bubble(trees);
+	//Bubble(trees);
 }
 
 void Game::Update(sf::RenderWindow& window, float elapsed, bool fire)
@@ -499,20 +537,16 @@ void Game::Update(sf::RenderWindow& window, float elapsed, bool fire)
 	for (size_t i = 0; i < objects.size(); ++i)
 		objects[i].Update(window, elapsed, objects, fire);
 
-	bgndOff -= dT * 7.5f;
+	IntRect rect = sprBg.getTextureRect();
 
-	IntRect rect = sprBgnd.getTextureRect();
-	rect.left = -(int)bgndOff;
-	sprBgnd.setTextureRect(rect);
-
-	for (size_t i = 0; i < trees.size(); ++i)
-		trees[i].Update(window, dT);
+	for (size_t i = 0; i < backgrounds.size(); ++i)
+		backgrounds[i].Update(window, elapsed);
 }
 
-void Game::Render(sf::RenderWindow& window, float elapsed)
+void Game::Render(sf::RenderWindow& window)
 {
 	for (size_t i = 0; i < objects.size(); ++i)
-		objects[i].Render(window, elapsed);
+		objects[i].Render(window);
 
 	Sprite sky(texSky);
 	sky.setScale(window.getSize().x / (float)texSky.getSize().x, window.getSize().y / (float)texSky.getSize().y);

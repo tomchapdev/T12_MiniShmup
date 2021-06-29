@@ -1,17 +1,15 @@
-
+#include <assert.h>
+#include <string>
 #include "Game.h"
+#include "SFML/Graphics.hpp"
 
 using namespace sf;
 using namespace std;
 
-
-
-
-
 int main()
 {
 	// Create the main window
-	RenderWindow window(VideoMode(GC::SCREEN_RES.x, GC::SCREEN_RES.y), "Rock Shooter");
+	RenderWindow window(VideoMode(GC::SCREEN_RES.x, GC::SCREEN_RES.y), "T12_MiniShmup");
 
 	Game game;
 	game.Init(window);
@@ -49,7 +47,7 @@ int main()
 		clock.restart();
 
 		game.Update(window, elapsed, fire);
-		game.Render(window, elapsed);
+		game.Render(window);
 
 		// Update the window
 		window.display();
