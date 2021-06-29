@@ -1,12 +1,81 @@
 #include <assert.h>
 #include <string>
 #include <math.h>
+#include <sstream>
+#include <algorithm>
 
 #include "Game.h"
 
-using namespace sf;
 using namespace std;
+using namespace sf;
 
+/*
+Seed random number generator
+s=a fixed value to use (for debugging perhaps) or
+let it default to -1 and time is used instead
+*/
+void Seed(int s = -1)
+{
+	if (s == -1)
+		srand((unsigned int)time(0));
+	else
+		srand(s);
+}
+
+/*
+float value between min and max inclusive
+*/
+float GetRandRange(float min, float max)
+{
+	float alpha = rand() / (float)RAND_MAX;
+	alpha = min + (max - min) * alpha;
+	return alpha;
+}
+
+/*
+integer variant
+*/
+int GetRandRange(int min, int max)
+{
+	float alpha = GetRandRange(0.f, 1.f);
+	return min + (int)round((max - min) * alpha);
+}
+
+/*
+Bubble sorter
+sprites - a vector of GameObjects to sort by z
+*/
+void Bubble(vector<Tree>& sprites)
+{
+	if (sprites.size() <= 1)
+		return;
+	bool busy;
+	do
+	{
+		busy = false;
+		for (size_t i = 0; i < (sprites.size() - 1); ++i)
+		{
+			if (sprites[i].z > sprites[i + 1].z)
+			{
+				Tree o = sprites[i];
+				sprites[i] = sprites[i + 1];
+				sprites[i + 1] = o;
+				busy = true;
+			}
+		}
+
+	} while (busy);
+}
+
+
+void Tree::Update(RenderWindow& window, float dT)
+{
+	Vector2f pos = spr.getPosition();
+	pos.x -= dT * GC::TREE_SPEED * z;
+	if (pos.x < -spr.getTextureRect().width)
+		pos.x = (float)(window.getSize().x + spr.getTextureRect().width);
+	spr.setPosition(pos);
+}
 
 void Object::InitShip(RenderWindow& window, Texture& tex)
 {
@@ -357,7 +426,8 @@ bool SpawnRock(RenderWindow& window, vector<Object>& objects, float extraClearan
 	return found;
 }
 
-void Game::Init(sf::RenderWindow& window) {
+void Game::Init(sf::RenderWindow& window)
+{
 	LoadTexture("data/ship.png", texShip);
 	LoadTexture("data/asteroid.png", texRock);
 	LoadTexture("data/missile-01.png", texBullet);
@@ -377,9 +447,47 @@ void Game::Init(sf::RenderWindow& window) {
 	spawnTimer = 0;
 	spawnDelay = 0.01f;
 	rockShipClearance = objects[0].spr.getGlobalBounds().width * 2.f;
+
+	Seed();
+
+	if (!texBgnd.loadFromFile("data/bg_parallaxFar.png"))
+		assert(false);
+	texBgnd.setRepeated(true);
+	sprBgnd.setTexture(texBgnd);
+
+	if (!texTrees.loadFromFile("data/trees.png"))
+		assert(false);
+	texTrees.setSmooth(true);
+
+	if (!texSky.loadFromFile("data/backgroundlayers/stars.png"))
+		assert(false);
+	if (!texEarth.loadFromFile("data/backgroundlayers/earth.png"))
+		assert(false);
+
+	trees.insert(trees.begin(), GC::NUM_TREES, Tree());
+	for (size_t i = 0; i < trees.size(); ++i)
+	{
+		Tree& o = trees[i];
+		o.spr.setTexture(texTrees);
+		int idx = GetRandRange(0, GC::MAX_TREEGFX - 1);
+		o.spr.setTextureRect(GC::TREE_SPR[idx]);
+		o.spr.setOrigin(GC::TREE_SPR[0].width / 2.f, GC::TREE_SPR[0].height / 2.f);
+		o.z = GetRandRange(0.25f, 1.f);
+		o.spr.setScale(o.z * 1.5f, o.z * 1.5f);
+		o.spr.setPosition(GetRandRange(0.f, (float)window.getSize().x + o.spr.getTextureRect().width),
+			(float)window.getSize().y * 0.9f - (150 * (1.f - o.z)));
+
+	}
+	/*
+	std::sort(sprites.begin(), sprites.end(), [](GameObj& o1, GameObj& o2){
+		return o1.z < o2.z;
+	});
+	*/
+	Bubble(trees);
 }
 
-void Game::Update(sf::RenderWindow& window, float elapsed, bool fire) {
+void Game::Update(sf::RenderWindow& window, float elapsed, bool fire)
+{
 	spawnTimer += elapsed;
 	if (spawnTimer >= spawnDelay)
 	{
@@ -390,9 +498,34 @@ void Game::Update(sf::RenderWindow& window, float elapsed, bool fire) {
 	CheckCollisions(objects, window, false);
 	for (size_t i = 0; i < objects.size(); ++i)
 		objects[i].Update(window, elapsed, objects, fire);
+
+	bgndOff -= dT * 7.5f;
+
+	IntRect rect = sprBgnd.getTextureRect();
+	rect.left = -(int)bgndOff;
+	sprBgnd.setTextureRect(rect);
+
+	for (size_t i = 0; i < trees.size(); ++i)
+		trees[i].Update(window, dT);
 }
 
-void Game::Render(sf::RenderWindow& window, float elapsed) {
+void Game::Render(sf::RenderWindow& window, float elapsed)
+{
 	for (size_t i = 0; i < objects.size(); ++i)
 		objects[i].Render(window, elapsed);
+
+	Sprite sky(texSky);
+	sky.setScale(window.getSize().x / (float)texSky.getSize().x, window.getSize().y / (float)texSky.getSize().y);
+	window.draw(sky);
+
+	Sprite earth(texEarth);
+	earth.setPosition(0.f, 50.f);
+	window.draw(earth);
+
+	sprBgnd.setPosition(0, 0);
+	sprBgnd.setScale(window.getSize().x / (float)texBgnd.getSize().x, window.getSize().y / (float)texBgnd.getSize().y);
+	window.draw(sprBgnd);
+
+	for (size_t i = 0; i < trees.size(); ++i)
+		window.draw(trees[i].spr);
 }
