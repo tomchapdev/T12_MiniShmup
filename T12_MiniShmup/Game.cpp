@@ -45,7 +45,7 @@ int GetRandRange(int min, int max)
 Bubble sorter
 sprites - a vector of GameObjects to sort by z
 */
-void Bubble(vector<Tree>& sprites)
+void Bubble(vector<Background>& sprites)
 {
 	if (sprites.size() <= 1)
 		return;
@@ -57,7 +57,7 @@ void Bubble(vector<Tree>& sprites)
 		{
 			if (sprites[i].z > sprites[i + 1].z)
 			{
-				Tree o = sprites[i];
+				Background o = sprites[i];
 				sprites[i] = sprites[i + 1];
 				sprites[i + 1] = o;
 				busy = true;
@@ -459,16 +459,17 @@ void GenerateBgTextures(const Image& img, Texture& tex, const char& type)
 	};
 }
 
-Background GenerateBg(Background& bg);
+void GenerateBgRandom(vector<Background>& bg)
 {
-	switch (bg.type)
+	int i;
+	switch (bg[i].type)
 	{
-	case 'b': //non-random background
-		if (!tex.create(GC::SCREEN_RES.x, GC::SCREEN_RES.y))
+	case 'a': //non-random background
+		/*if (!tex.create(GC::SCREEN_RES.x, GC::SCREEN_RES.y))
 			assert(false);
 		LoadTextureImg(img, tex, GC::BG_SPR[1], !GC::REPEAT);
 		LoadTextureImg(img, tex, GC::BG_SPR[0], GC::REPEAT);
-		break;
+		break;*/
 	case 'm': //random mountains
 
 	case 'c': //random clouds
@@ -537,8 +538,6 @@ void Game::Update(sf::RenderWindow& window, float elapsed, bool fire)
 	for (size_t i = 0; i < objects.size(); ++i)
 		objects[i].Update(window, elapsed, objects, fire);
 
-	IntRect rect = sprBg.getTextureRect();
-
 	for (size_t i = 0; i < backgrounds.size(); ++i)
 		backgrounds[i].Update(window, elapsed);
 }
@@ -548,18 +547,6 @@ void Game::Render(sf::RenderWindow& window)
 	for (size_t i = 0; i < objects.size(); ++i)
 		objects[i].Render(window);
 
-	Sprite sky(texSky);
-	sky.setScale(window.getSize().x / (float)texSky.getSize().x, window.getSize().y / (float)texSky.getSize().y);
-	window.draw(sky);
-
-	Sprite earth(texEarth);
-	earth.setPosition(0.f, 50.f);
-	window.draw(earth);
-
-	sprBgnd.setPosition(0, 0);
-	sprBgnd.setScale(window.getSize().x / (float)texBgnd.getSize().x, window.getSize().y / (float)texBgnd.getSize().y);
-	window.draw(sprBgnd);
-
-	for (size_t i = 0; i < trees.size(); ++i)
-		window.draw(trees[i].spr);
+	for (size_t i = 0; i < backgrounds.size(); ++i)
+		window.draw(backgrounds[i].spr);
 }

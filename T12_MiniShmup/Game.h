@@ -66,6 +66,7 @@ struct Background
 {
 	float z = 0;						//faked 3D depth - done using parallax and scaling
 	float speed = GC::BG_MIN_SPEED;		//speed of this background object
+	char type;							//cloud, mountain, or atmosphere
 	sf::Sprite spr;						//image and position
 	sf::Texture* pTex = nullptr;		//pointer to be made const later?
 
@@ -186,8 +187,8 @@ bool SpawnRock(sf::RenderWindow& window, std::vector<Object>& objects, float ext
 */
 void GenerateBgTextures(const Image& img, Texture& tex, const int& type);
 /*
-	Generates the parallax background
+	Generates the randomized parallax background
 	GenerateBgTextures must be called first
 */
-Background GenerateBg(Background& bg);
+void GenerateBgRandom(std::vector<Background>& bg);
 #pragma once
