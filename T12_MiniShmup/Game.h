@@ -24,7 +24,8 @@ the name of the title screen music track, etc.
 namespace GC
 {
 	//game play related constants to tweak
-	const Dim2Di SCREEN_RES{800,600};
+	const Dim2Di SCREEN_RES{800,600};	//game window dimensions
+	const int FRAMERATE_MAX = 60;		//maximum framerate
 	const float SPEED = 250.f;			//ship speed
 	const float SCREEN_EDGE = 0.6f;		//how close to the edge the ship can get
 	const char ESCAPE_KEY{27};
@@ -33,29 +34,22 @@ namespace GC
 	const int PLACE_TRIES = 10;			//how many times to try and place before giving up
 	const float ROCK_SPEED = 150.f;		//max speed of asteroids
 
-	const float BG_MAX_SPEED = 50.f;		//max speed of background sprites
-	const float BG_MIN_SPEED = 7.5f;		//min speed of background sprites
-	const int BG_MAX_NUM = 12;				//maximum number of rng background images
-	const int BG_NUM_PNG = 8;				//8 background sprites on spritesheet
-	const int BG_RNG_PNG = 6;				//6 background sprites used dynamically
+	const float BG_SPEED_MAX = 50.f;		//max speed of background sprites
+	const float BG_SPEED_MIN = 7.5f;		//min speed of background sprites
+	const float BG_SCALE_MAX = 1.0f;			//max size of background sprites
+	const float BG_SCALE_MIN = 0.3f;			//min size of background sprites
+	const float BG_SCALE_RANGE = BG_SCALE_MAX - BG_SCALE_MIN;	//Difference between max and min background sprite sizes
+	const int BG_NUM_MAX = 12;				//maximum number of rng background images
+	const int BG_NUM_MIN = 6;				//minimum number of rng background images
+	const int BG_PNG_NUM = 8;				//8 background sprites on spritesheet
+	const int BG_PNG_RNG = 6;				//6 background sprites used dynamically
 	const Dim2Di BG_PNG_SIZE = {512,256};	//size (x,y) of background images
 	const Dim2Df BG_SCALE_RATIO = {			//scale ratio to fill screen
-		SCREEN_RES.x / BG_PNG_SIZE.x,
-		SCREEN_RES.y / BG_PNG_SIZE.y
+		((float)SCREEN_RES.x / (float)BG_PNG_SIZE.x),
+		((float)SCREEN_RES.y / (float)BG_PNG_SIZE.y)
 	};
-	const int BG_MAX_Z = 32 * BG_SCALE_RATIO.x;	//max depth (mountain base height)
-	const sf::IntRect BG_SPR[BG_NUM_PNG]		//array of background image's IntRects
-	{
-		//{xPos, yPos of top left, x, y sizes of each texture}
-		{0,0,					BG_PNG_SIZE.x, BG_PNG_SIZE.y},
-		{BG_PNG_SIZE.x,0,		BG_PNG_SIZE.x,BG_PNG_SIZE.y},
-		{2*BG_PNG_SIZE.x,0,		BG_PNG_SIZE.x,BG_PNG_SIZE.y},
-		{3*BG_PNG_SIZE.x,0,		BG_PNG_SIZE.x,BG_PNG_SIZE.y},
-		{0,BG_PNG_SIZE.y,		BG_PNG_SIZE.x,BG_PNG_SIZE.y},
-		{BG_PNG_SIZE.x,0,		BG_PNG_SIZE.x,BG_PNG_SIZE.y},
-		{2 * BG_PNG_SIZE.x,0,	BG_PNG_SIZE.x,BG_PNG_SIZE.y},
-		{3 * BG_PNG_SIZE.x, 0,	BG_PNG_SIZE.x, BG_PNG_SIZE.y}
-	};
+	const int BG_Z_MAX = 32 * BG_SCALE_RATIO.y;	//max depth (mountain base height)
+	const float BG_Z_FAR = 0.8f;				//Past this use a dark far away texture
 	const bool REPEAT = true;
 }
 
@@ -65,13 +59,10 @@ a background object
 struct Background
 {
 	float z = 0;						//faked 3D depth - done using parallax and scaling
-	float speed = GC::BG_MIN_SPEED;		//speed of this background object
-	char type;							//cloud, mountain, or atmosphere
+	float speed = GC::BG_SPEED_MIN;		//speed of this background object
 	sf::Sprite spr;						//image and position
-	sf::Texture* pTex = nullptr;		//pointer to be made const later?
 
-	//void Init();
-	void Update(sf::RenderWindow& window, float dT);
+	void Update(sf::RenderWindow& window, float elapsed);
 };
 
 /*
@@ -133,14 +124,13 @@ struct Game
 	float spawnDelay;				//how long to wait before another asteroid comes in, decrease to make harder
 	float rockShipClearance = 2.f;	//when placing an asteroid, how many ship lengths away from other rocks should it be, harder = smaller
 
-	sf::Image bgSpriteSheet;				//background spritesheet
-	sf::Texture texBg, texClouds1, texClouds2,
-		texBgMount1, texBgMount2, texBgMount3,
-		texBgMount4;
+	sf::Texture texBgSky, texBgGround;		//static background texture
 	std::vector<Background> backgrounds;	//parallax backgrounds
-	//sf::Sprite sprBg;						//background is scrolled in the texture, a bit shakey
-	//float bgndOff = 0;						//value is used to scroll the background texture so it appears to move
 
+	//initialize Backgrounds
+	void GenerateBgTextures();
+	//Generates the randomized parallax background
+	void GenerateBgRandom();
 	//load textures, create ship and rocks, set all rocks initially inactive
 	void Init(sf::RenderWindow& window);
 	//move the ship and rocks, spawn new rocks 
@@ -155,24 +145,31 @@ objects - any could be colliding
 debug - if true, draw the collision radius and mark any collisions in red
 */
 void CheckCollisions(std::vector<Object>& objects, sf::RenderWindow& window, bool debug = true);
-//
+
+/*
+Draws circle for debugging
+*/
 void DrawCircle(sf::RenderWindow& window, const sf::Vector2f& pos, float radius, sf::Color col);
+
 /*
 file - path and file name and extension
 tex - set this up with the texture
 */
 bool LoadTexture(const std::string& file, sf::Texture& tex);
+
 /*
 Check if two circles are touching
 pos1,pos2 - two centres
 minDist - minimum colliding distance
 */
 bool CircleToCircle(const sf::Vector2f& pos1, const sf::Vector2f& pos2, float minDist);
+
 /*
 Test one object against an array of other objects to see if it collides
 It's OK if the object happens to be in the array, it won't test against itself
 */
 bool IsColliding(Object& obj, std::vector<Object>& objects);
+
 /*
 Setup a new rock to fly in from the right
 Look through the objects array, find an inactive rock, pick a new starting position
@@ -181,14 +178,4 @@ from anything else and mark active.
 If it does collide with something then don't spawn and return false.
 */
 bool SpawnRock(sf::RenderWindow& window, std::vector<Object>& objects, float extraClearance);
-/*
-	Assigns values to the textures stored inside the Game object
-	Must be called before GenerateBg()
-*/
-void GenerateBgTextures(const Image& img, Texture& tex, const int& type);
-/*
-	Generates the randomized parallax background
-	GenerateBgTextures must be called first
-*/
-void GenerateBgRandom(std::vector<Background>& bg);
 #pragma once

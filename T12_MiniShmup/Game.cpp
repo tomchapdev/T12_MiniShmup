@@ -52,18 +52,21 @@ void Bubble(vector<Background>& sprites)
 	bool busy;
 	do
 	{
+		
 		busy = false;
-		for (size_t i = 0; i < (sprites.size() - 1); ++i)
+		for (size_t j = 2; j < sprites.size() - 1; ++j)
 		{
-			if (sprites[i].z > sprites[i + 1].z)
+			for (size_t i = j; i < (sprites.size() - 1); ++i)
 			{
-				Background o = sprites[i];
-				sprites[i] = sprites[i + 1];
-				sprites[i + 1] = o;
-				busy = true;
+				if (sprites[i].z > sprites[i + 1].z)
+				{
+					Background o = sprites[i];
+					sprites[i] = sprites[i + 1];
+					sprites[i + 1] = o;
+					busy = true;
+				}
 			}
 		}
-
 	} while (busy);
 }
 
@@ -71,14 +74,10 @@ void Bubble(vector<Background>& sprites)
 void Background::Update(RenderWindow& window, float elapsed)
 {
 	Vector2f pos = spr.getPosition();
-	pos.x -= elapsed * GC::BG_MAX_SPEED * z;
-	if (pos.x < -spr.getTextureRect().width)
-	{
-		if ((*pTex).isRepeated())
-			pos.x += spr.getTextureRect().width;
-		else
-			pos.x = (float)(window.getSize().x);
-	}
+	pos.x -= elapsed * speed;
+	int width = spr.getTextureRect().width;
+	if (pos.x < -width)
+			pos.x += width;
 	spr.setPosition(pos);
 }
 
@@ -230,7 +229,7 @@ void Object::PlayerControl(const Vector2u& screenSz, float elapsed, std::vector<
 
 	if (fire)
 	{
-		Vector2f pos(pos.x + spr.getGlobalBounds().width / 2.f, pos.y);
+		pos.x = pos.x + spr.getGlobalBounds().width / 2.f;
 		FireBullet(pos, objects);
 	}
 }
@@ -290,18 +289,6 @@ bool LoadTexture(const string& file, Texture& tex)
 	if (tex.loadFromFile(file))
 	{
 		tex.setSmooth(true);
-		return true;
-	}
-	assert(false);
-	return false;
-}
-
-bool LoadTextureImg(const Image& img, Texture& tex, const IntRect& rect, const bool& repeat)
-{
-	if (tex.loadFromImage(img, rect))
-	{
-		tex.setSmooth(true);
-		tex.setRepeated(repeat);
 		return true;
 	}
 	assert(false);
@@ -442,39 +429,80 @@ bool SpawnRock(RenderWindow& window, vector<Object>& objects, float extraClearan
 	return found;
 }
 
-void GenerateBgTextures(const Image& img, Texture& tex, const char& type)
+void Game::GenerateBgTextures()
 {
-	switch (type)
-	{
-	case 'b': //non-random background
-		if (!tex.create(GC::SCREEN_RES.x, GC::SCREEN_RES.y))
-			assert(false);
-		LoadTextureImg(img, tex, GC::BG_SPR[1], !GC::REPEAT);
-		LoadTextureImg(img, tex, GC::BG_SPR[0], GC::REPEAT);
-		break;
-	case 'm': //random mountains
-
-	case 'c': //random clouds
-
-	};
+	LoadTexture("data/bgSky.png", texBgSky);
+	LoadTexture("data/bgMountainBase.png", texBgGround);
 }
 
-void GenerateBgRandom(vector<Background>& bg)
+void Game::GenerateBgRandom()
 {
-	int i;
-	switch (bg[i].type)
+	int bgNum = GetRandRange(GC::BG_NUM_MIN, GC::BG_NUM_MAX);
+	Background base;
+	backgrounds.resize(bgNum + 2, base);
+	//backgrounds.insert(backgrounds.begin(), bgNum + 2, Background());
+
+	backgrounds[0].spr.setTexture(texBgSky);
+	backgrounds[0].spr.setScale(GC::BG_SCALE_RATIO.x, GC::BG_SCALE_RATIO.y);
+	backgrounds[0].speed = 0;
+	backgrounds[0].spr.setPosition(0, 0);
+
+	backgrounds[1].spr.setTexture(texBgGround);
+	backgrounds[1].spr.setScale(GC::BG_SCALE_RATIO.x, GC::BG_SCALE_RATIO.y);
+	backgrounds[1].speed = 0;
+	backgrounds[1].spr.setPosition(0, 0);
+
+	for (size_t i = 2; i < backgrounds.size(); ++i)
 	{
-	case 'a': //non-random background
-		/*if (!tex.create(GC::SCREEN_RES.x, GC::SCREEN_RES.y))
-			assert(false);
-		LoadTextureImg(img, tex, GC::BG_SPR[1], !GC::REPEAT);
-		LoadTextureImg(img, tex, GC::BG_SPR[0], GC::REPEAT);
-		break;*/
-	case 'm': //random mountains
+		Background& o = backgrounds[i];
+		Texture tex;
+		o.z = GetRandRange(0, GC::BG_Z_MAX);
 
-	case 'c': //random clouds
+		if (o.z < (GC::BG_Z_MAX * GC::BG_Z_FAR))
+		{
+			if (GetRandRange(0, 1))
+				LoadTexture("data/bgClouds-02.png", tex);
+			else
+				LoadTexture("data/bgMountains-04.png", tex);
+		}
+		else
+		{
+			int choice = GetRandRange(1, 4);
+			switch (choice)
+			{
+				case 1:
+					LoadTexture("data/bgClouds-01.png", tex);
+					break;
 
-	};
+				case 2:
+					LoadTexture("data/bgMountains-01.png", tex);
+					break;
+
+				case 3:
+					LoadTexture("data/bgMountains-02.png", tex);
+					break;
+
+				case 4:
+					LoadTexture("data/bgMountains-03.png", tex);
+					break;
+
+				default:
+					assert(false);
+			}
+		}
+		o.spr.setTexture(tex);
+	}
+
+	Bubble(backgrounds);
+
+	for (size_t i = 2; i < backgrounds.size(); ++i)
+	{
+		float scale = GC::BG_SCALE_MIN + (GC::BG_SCALE_RANGE * backgrounds[i].z / GC::BG_Z_MAX);
+		backgrounds[i].spr.setScale(GC::BG_SCALE_RATIO.x, scale);
+		backgrounds[i].speed = GC::BG_SPEED_MIN + ((GC::BG_SPEED_MAX - GC::BG_SPEED_MIN) * backgrounds[i].z / GC::BG_Z_MAX);
+		backgrounds[i].spr.setPosition((GetRandRange(0.f, (float)backgrounds[i].spr.getGlobalBounds().width) - (float)backgrounds[i].spr.getGlobalBounds().width),
+			GC::SCREEN_RES.y - (float)backgrounds[i].spr.getGlobalBounds().height - backgrounds[i].z);
+	}
 }
 
 void Game::Init(sf::RenderWindow& window)
@@ -499,30 +527,8 @@ void Game::Init(sf::RenderWindow& window)
 	spawnDelay = 0.01f;
 	rockShipClearance = objects[0].spr.getGlobalBounds().width * 2.f;
 
-	//Seed();
-
-	bgSpriteSheet.loadFromFile("data\\bgSpriteSheet.png");
-
-	/*backgrounds.insert(trees.begin(), GC::NUM_TREES, Tree());
-	for (size_t i = 0; i < trees.size(); ++i)
-	{
-		Tree& o = trees[i];
-		o.spr.setTexture(texTrees);
-		int idx = GetRandRange(0, GC::MAX_TREEGFX - 1);
-		o.spr.setTextureRect(GC::TREE_SPR[idx]);
-		o.spr.setOrigin(GC::TREE_SPR[0].width / 2.f, GC::TREE_SPR[0].height / 2.f);
-		o.z = GetRandRange(0.25f, 1.f);
-		o.spr.setScale(o.z * 1.5f, o.z * 1.5f);
-		o.spr.setPosition(GetRandRange(0.f, (float)window.getSize().x + o.spr.getTextureRect().width),
-			(float)window.getSize().y * 0.9f - (150 * (1.f - o.z)));
-
-	}*/
-	/*
-	std::sort(sprites.begin(), sprites.end(), [](GameObj& o1, GameObj& o2){
-		return o1.z < o2.z;
-	});
-	*/
-	//Bubble(trees);
+	GenerateBgTextures();
+	GenerateBgRandom();
 }
 
 void Game::Update(sf::RenderWindow& window, float elapsed, bool fire)
@@ -538,15 +544,19 @@ void Game::Update(sf::RenderWindow& window, float elapsed, bool fire)
 	for (size_t i = 0; i < objects.size(); ++i)
 		objects[i].Update(window, elapsed, objects, fire);
 
-	for (size_t i = 0; i < backgrounds.size(); ++i)
+	for (size_t i = 2; i < backgrounds.size(); ++i)
 		backgrounds[i].Update(window, elapsed);
 }
 
 void Game::Render(sf::RenderWindow& window)
 {
+	window.draw(backgrounds[0].spr);
+	window.draw(backgrounds[1].spr);
+	for (size_t i = backgrounds.size() - 1; i > 1; --i)
+	{
+		window.draw(backgrounds[i].spr);
+	}
+
 	for (size_t i = 0; i < objects.size(); ++i)
 		objects[i].Render(window);
-
-	for (size_t i = 0; i < backgrounds.size(); ++i)
-		window.draw(backgrounds[i].spr);
 }

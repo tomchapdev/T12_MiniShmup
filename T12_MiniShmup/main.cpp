@@ -10,6 +10,7 @@ int main()
 {
 	// Create the main window
 	RenderWindow window(VideoMode(GC::SCREEN_RES.x, GC::SCREEN_RES.y), "T12_MiniShmup");
+	window.setFramerateLimit(GC::FRAMERATE_MAX);
 
 	Game game;
 	game.Init(window);
