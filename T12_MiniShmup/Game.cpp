@@ -47,27 +47,21 @@ sprites - a vector of GameObjects to sort by z
 */
 void Bubble(vector<Background>& sprites)
 {
-	if (sprites.size() <= 1)
-		return;
-	bool busy;
-	do
+	bool busy = true;
+	while (busy)
 	{
-		
 		busy = false;
-		for (size_t j = 2; j < sprites.size() - 1; ++j)
+		for (size_t i = 2; i < (sprites.size() - 1); ++i)
 		{
-			for (size_t i = j; i < (sprites.size() - 1); ++i)
+			if (sprites[i].z > sprites[i + 1].z)
 			{
-				if (sprites[i].z > sprites[i + 1].z)
-				{
-					Background o = sprites[i];
-					sprites[i] = sprites[i + 1];
-					sprites[i + 1] = o;
-					busy = true;
-				}
+				Background o = sprites[i];
+				sprites[i] = sprites[i + 1];
+				sprites[i + 1] = o;
+				busy = true;
 			}
 		}
-	} while (busy);
+	}
 }
 
 
@@ -433,6 +427,8 @@ void Game::GenerateBgTextures()
 {
 	LoadTexture("data/bgSky.png", texBgSky);
 	LoadTexture("data/bgMountainBase.png", texBgGround);
+	LoadTexture("data/bgClouds-01.png", texBgCloud1);
+	LoadTexture("data/bgClouds-02.png", texBgCloud2);
 }
 
 void Game::GenerateBgRandom()
@@ -455,15 +451,14 @@ void Game::GenerateBgRandom()
 	for (size_t i = 2; i < backgrounds.size(); ++i)
 	{
 		Background& o = backgrounds[i];
-		Texture tex;
-		o.z = GetRandRange(0, GC::BG_Z_MAX);
+		o.z = GetRandRange(0, (int)GC::BG_Z_MAX);
 
-		if (o.z < (GC::BG_Z_MAX * GC::BG_Z_FAR))
+		if (o.z > (GC::BG_Z_MAX * GC::BG_Z_FAR))
 		{
 			if (GetRandRange(0, 1))
-				LoadTexture("data/bgClouds-02.png", tex);
+				o.spr.setTexture(texBgCloud2);
 			else
-				LoadTexture("data/bgMountains-04.png", tex);
+				o.spr.setTexture(texBgMount4);
 		}
 		else
 		{
@@ -471,26 +466,25 @@ void Game::GenerateBgRandom()
 			switch (choice)
 			{
 				case 1:
-					LoadTexture("data/bgClouds-01.png", tex);
+					o.spr.setTexture(texBgCloud1);
 					break;
 
 				case 2:
-					LoadTexture("data/bgMountains-01.png", tex);
+					o.spr.setTexture(texBgMount1);
 					break;
 
 				case 3:
-					LoadTexture("data/bgMountains-02.png", tex);
+					o.spr.setTexture(texBgMount2);
 					break;
 
 				case 4:
-					LoadTexture("data/bgMountains-03.png", tex);
+					o.spr.setTexture(texBgMount3);
 					break;
 
 				default:
 					assert(false);
 			}
 		}
-		o.spr.setTexture(tex);
 	}
 
 	Bubble(backgrounds);

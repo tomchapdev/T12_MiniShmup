@@ -48,7 +48,7 @@ namespace GC
 		((float)SCREEN_RES.x / (float)BG_PNG_SIZE.x),
 		((float)SCREEN_RES.y / (float)BG_PNG_SIZE.y)
 	};
-	const int BG_Z_MAX = 32 * BG_SCALE_RATIO.y;	//max depth (mountain base height)
+	const float BG_Z_MAX = 32.f * BG_SCALE_RATIO.y;	//max depth (mountain base height)
 	const float BG_Z_FAR = 0.8f;				//Past this use a dark far away texture
 	const bool REPEAT = true;
 }
@@ -125,6 +125,9 @@ struct Game
 	float rockShipClearance = 2.f;	//when placing an asteroid, how many ship lengths away from other rocks should it be, harder = smaller
 
 	sf::Texture texBgSky, texBgGround;		//static background texture
+	sf::Texture texBgMount1, texBgMount2,
+		texBgMount3, texBgMount4,
+		texBgCloud1, texBgCloud2;			//random background texture
 	std::vector<Background> backgrounds;	//parallax backgrounds
 
 	//initialize Backgrounds
