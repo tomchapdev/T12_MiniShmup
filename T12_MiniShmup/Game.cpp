@@ -51,7 +51,7 @@ void Bubble(vector<Background>& sprites)
 	while (busy)
 	{
 		busy = false;
-		for (size_t i = 2; i < (sprites.size() - 1); ++i)
+		for (size_t i = 0; i < (sprites.size() - 1); ++i)
 		{
 			if (sprites[i].z > sprites[i + 1].z)
 			{
@@ -69,7 +69,7 @@ void Background::Update(RenderWindow& window, float elapsed)
 {
 	Vector2f pos = spr.getPosition();
 	pos.x -= elapsed * speed;
-	int width = spr.getTextureRect().width;
+	float width = spr.getGlobalBounds().width;
 	if (pos.x < -width)
 			pos.x += width;
 	spr.setPosition(pos);
@@ -254,7 +254,7 @@ void Object::Hit(Object& other)
 		if (other.type == ObjectT::Rock)
 		{
 			TakeDamage(1);
-			other.TakeDamage(999);
+			other.TakeDamage(999);	
 		}
 		break;
 	case ObjectT::Bullet:
@@ -425,8 +425,6 @@ bool SpawnRock(RenderWindow& window, vector<Object>& objects, float extraClearan
 
 void Game::GenerateBgTextures()
 {
-	LoadTexture("data/bgSky.png", texBgSky);
-	LoadTexture("data/bgMountainBase.png", texBgGround);
 	LoadTexture("data/bgClouds-01.png", texBgCloud1);
 	LoadTexture("data/bgClouds-02.png", texBgCloud2);
 }
@@ -434,16 +432,19 @@ void Game::GenerateBgTextures()
 void Game::GenerateBgRandom()
 {
 	int bgNum = GetRandRange(GC::BG_NUM_MIN, GC::BG_NUM_MAX);
-	Background base;
-	backgrounds.resize(bgNum + 2, base);
+	backgrounds.resize(bgNum + 2, Background());
 	//backgrounds.insert(backgrounds.begin(), bgNum + 2, Background());
 
-	backgrounds[0].spr.setTexture(texBgSky);
+	backgrounds[0].tex.create(GC::BG_PNG_SIZE.x, GC::BG_PNG_SIZE.y);
+	LoadTexture("data/bgSky.png", backgrounds[0].tex);
+	backgrounds[0].spr.setTexture(backgrounds[0].tex);
 	backgrounds[0].spr.setScale(GC::BG_SCALE_RATIO.x, GC::BG_SCALE_RATIO.y);
 	backgrounds[0].speed = 0;
 	backgrounds[0].spr.setPosition(0, 0);
 
-	backgrounds[1].spr.setTexture(texBgGround);
+	backgrounds[1].tex.create(GC::BG_PNG_SIZE.x, GC::BG_PNG_SIZE.y);
+	LoadTexture("data/bgMountainBase.png", backgrounds[1].tex);
+	backgrounds[1].spr.setTexture(backgrounds[1].tex);
 	backgrounds[1].spr.setScale(GC::BG_SCALE_RATIO.x, GC::BG_SCALE_RATIO.y);
 	backgrounds[1].speed = 0;
 	backgrounds[1].spr.setPosition(0, 0);
@@ -451,14 +452,15 @@ void Game::GenerateBgRandom()
 	for (size_t i = 2; i < backgrounds.size(); ++i)
 	{
 		Background& o = backgrounds[i];
-		o.z = GetRandRange(0, (int)GC::BG_Z_MAX);
+		o.tex.create(GC::BG_PNG_SIZE.x, GC::BG_PNG_SIZE.y);
+		o.z = GetRandRange(0.f, GC::BG_Z_MAX);
 
 		if (o.z > (GC::BG_Z_MAX * GC::BG_Z_FAR))
 		{
 			if (GetRandRange(0, 1))
-				o.spr.setTexture(texBgCloud2);
+				LoadTexture("data/bgClouds-02.png", o.tex);
 			else
-				o.spr.setTexture(texBgMount4);
+				LoadTexture("data/bgMountains-04.png", o.tex);
 		}
 		else
 		{
@@ -466,32 +468,33 @@ void Game::GenerateBgRandom()
 			switch (choice)
 			{
 				case 1:
-					o.spr.setTexture(texBgCloud1);
+					LoadTexture("data/bgClouds-01.png", o.tex);
 					break;
 
 				case 2:
-					o.spr.setTexture(texBgMount1);
+					LoadTexture("data/bgMountains-01.png", o.tex);
 					break;
 
 				case 3:
-					o.spr.setTexture(texBgMount2);
+					LoadTexture("data/bgMountains-02.png", o.tex);
 					break;
 
 				case 4:
-					o.spr.setTexture(texBgMount3);
+					LoadTexture("data/bgMountains-03.png", o.tex);
 					break;
 
 				default:
 					assert(false);
 			}
 		}
+		o.spr.setTexture(o.tex);
 	}
 
 	Bubble(backgrounds);
 
 	for (size_t i = 2; i < backgrounds.size(); ++i)
 	{
-		float scale = GC::BG_SCALE_MIN + (GC::BG_SCALE_RANGE * backgrounds[i].z / GC::BG_Z_MAX);
+		float scale = GC::BG_SCALE_MAX - (GC::BG_SCALE_RANGE * backgrounds[i].z / GC::BG_Z_MAX);
 		backgrounds[i].spr.setScale(GC::BG_SCALE_RATIO.x, scale);
 		backgrounds[i].speed = GC::BG_SPEED_MIN + ((GC::BG_SPEED_MAX - GC::BG_SPEED_MIN) * backgrounds[i].z / GC::BG_Z_MAX);
 		backgrounds[i].spr.setPosition((GetRandRange(0.f, (float)backgrounds[i].spr.getGlobalBounds().width) - (float)backgrounds[i].spr.getGlobalBounds().width),
@@ -546,9 +549,13 @@ void Game::Render(sf::RenderWindow& window)
 {
 	window.draw(backgrounds[0].spr);
 	window.draw(backgrounds[1].spr);
-	for (size_t i = backgrounds.size() - 1; i > 1; --i)
+	for (size_t i = backgrounds.size() - 1; i > 2; --i)
 	{
 		window.draw(backgrounds[i].spr);
+		FloatRect rect = backgrounds[i].spr.getGlobalBounds();
+		backgrounds[i].spr.setPosition(rect.left + rect.width, rect.top);
+		window.draw(backgrounds[i].spr);
+		backgrounds[i].spr.setPosition(rect.left, rect.top);
 	}
 
 	for (size_t i = 0; i < objects.size(); ++i)

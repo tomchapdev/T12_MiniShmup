@@ -34,13 +34,13 @@ namespace GC
 	const int PLACE_TRIES = 10;			//how many times to try and place before giving up
 	const float ROCK_SPEED = 150.f;		//max speed of asteroids
 
-	const float BG_SPEED_MAX = 50.f;		//max speed of background sprites
-	const float BG_SPEED_MIN = 7.5f;		//min speed of background sprites
-	const float BG_SCALE_MAX = 1.0f;			//max size of background sprites
-	const float BG_SCALE_MIN = 0.3f;			//min size of background sprites
+	const float BG_SPEED_MAX = 100.f;		//max speed of background sprites
+	const float BG_SPEED_MIN = 10.f;		//min speed of background sprites
+	const float BG_SCALE_MAX = 1.0f;		//max size of background sprites
+	const float BG_SCALE_MIN = 0.3f;		//min size of background sprites
 	const float BG_SCALE_RANGE = BG_SCALE_MAX - BG_SCALE_MIN;	//Difference between max and min background sprite sizes
-	const int BG_NUM_MAX = 12;				//maximum number of rng background images
-	const int BG_NUM_MIN = 6;				//minimum number of rng background images
+	const int BG_NUM_MAX = 24;				//maximum number of rng background images
+	const int BG_NUM_MIN = 12;				//minimum number of rng background images
 	const int BG_PNG_NUM = 8;				//8 background sprites on spritesheet
 	const int BG_PNG_RNG = 6;				//6 background sprites used dynamically
 	const Dim2Di BG_PNG_SIZE = {512,256};	//size (x,y) of background images
@@ -49,8 +49,7 @@ namespace GC
 		((float)SCREEN_RES.y / (float)BG_PNG_SIZE.y)
 	};
 	const float BG_Z_MAX = 32.f * BG_SCALE_RATIO.y;	//max depth (mountain base height)
-	const float BG_Z_FAR = 0.8f;				//Past this use a dark far away texture
-	const bool REPEAT = true;
+	const float BG_Z_FAR = 0.8f;					//Past this use a dark far away texture
 }
 
 /*
@@ -60,6 +59,7 @@ struct Background
 {
 	float z = 0;						//faked 3D depth - done using parallax and scaling
 	float speed = GC::BG_SPEED_MIN;		//speed of this background object
+	sf::Texture tex;					//texture for sprite
 	sf::Sprite spr;						//image and position
 
 	void Update(sf::RenderWindow& window, float elapsed);
@@ -124,10 +124,14 @@ struct Game
 	float spawnDelay;				//how long to wait before another asteroid comes in, decrease to make harder
 	float rockShipClearance = 2.f;	//when placing an asteroid, how many ship lengths away from other rocks should it be, harder = smaller
 
-	sf::Texture texBgSky, texBgGround;		//static background texture
-	sf::Texture texBgMount1, texBgMount2,
-		texBgMount3, texBgMount4,
-		texBgCloud1, texBgCloud2;			//random background texture
+	sf::Texture texBgSky;			//Sky texture
+	sf::Texture texBgGround;		//Ground texture
+	sf::Texture texBgCloud1;		//Cloud texture
+	sf::Texture texBgCloud2;		//Cloud texture
+	sf::Texture texBgMount1;		//Mountain texture
+	sf::Texture texBgMount2;		//Mountain texture
+	sf::Texture texBgMount3;		//Mountain texture
+	sf::Texture texBgMount4;		//Mountain texture
 	std::vector<Background> backgrounds;	//parallax backgrounds
 
 	//initialize Backgrounds
