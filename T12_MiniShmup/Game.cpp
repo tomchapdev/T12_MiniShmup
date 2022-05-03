@@ -433,7 +433,6 @@ void Game::GenerateBgRandom()
 {
 	int bgNum = GetRandRange(GC::BG_NUM_MIN, GC::BG_NUM_MAX);
 	backgrounds.resize(bgNum + 2, Background());
-	//backgrounds.insert(backgrounds.begin(), bgNum + 2, Background());
 
 	backgrounds[0].tex.create(GC::BG_PNG_SIZE.x, GC::BG_PNG_SIZE.y);
 	LoadTexture("data/bgSky.png", backgrounds[0].tex);

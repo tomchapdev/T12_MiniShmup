@@ -120,8 +120,8 @@ struct Game
 	sf::Texture texRock;
 	sf::Texture texBullet;
 	std::vector<Object> objects;	//anything moving around
-	float spawnTimer;				//a clock
-	float spawnDelay;				//how long to wait before another asteroid comes in, decrease to make harder
+	float spawnTimer = 0.f;				//a clock
+	float spawnDelay = 0.f;				//how long to wait before another asteroid comes in, decrease to make harder
 	float rockShipClearance = 2.f;	//when placing an asteroid, how many ship lengths away from other rocks should it be, harder = smaller
 
 	sf::Texture texBgSky;			//Sky texture
